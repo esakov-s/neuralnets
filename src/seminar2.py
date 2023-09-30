@@ -1,7 +1,7 @@
 # Seminar 2. Softmax classifier.
 import datetime
-import os.path
 import numpy as np
+import os
 from src.test_utils import get_preprocessed_data, visualize_weights, visualize_loss
 
 
@@ -9,7 +9,7 @@ def softmax(z: np.array) -> np.array:
     """
     TODO 1:
     Compute softmax of 2D array along axis -1
-    :param X: 2D array, shape (N, C)
+    :param z: 2D array, shape (N, C)
     :return: softmax 2D array, shape (N, C)
     """
     exp = np.exp(z)
@@ -94,7 +94,8 @@ class SoftmaxClassifier:
             # replacement is faster than sampling without replacement.              #
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+            batch_ind = np.random.choice(num_train, size=batch_size, replace=True)
+            X_batch, y_batch = X[batch_ind, :], y[batch_ind]
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
             # evaluate loss and gradient
@@ -107,7 +108,7 @@ class SoftmaxClassifier:
             # Update the weights using the gradient and the learning rate.          #
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+            self.W -= learning_rate * grad
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
             if it % 100 == 0:
                 if verbose:
@@ -139,10 +140,10 @@ def train():
     # weights images must look like in lecture slides
 
     # ***** START OF YOUR CODE *****
-    learning_rate = 0
-    reg = 0
-    num_iters = 0
-    batch_size = 0
+    learning_rate = 0.001
+    reg = 0.1
+    num_iters = 10000
+    batch_size = 512
     # ******* END OF YOUR CODE ************
 
     (x_train, y_train), (x_test, y_test) = get_preprocessed_data()
@@ -171,7 +172,7 @@ Test accuracy: {cls.evaluate(x_test, y_test)}
 
     print(report)
 
-    out_dir = 'output/seminar2'
+    out_dir = r'C:\Users\Вячеслав\PycharmProjects\neuralnets\output\seminar2'
     report_path = os.path.join(out_dir, 'report.md')
     with open(report_path, 'w') as f:
         f.write(report)
