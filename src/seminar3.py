@@ -1,6 +1,7 @@
 """Seminar 3. Multilayer neural net"""
 import numpy as np
-
+from src.test_utils import visualize_weights, visualize_loss
+import datetime
 
 class Param:
     """
@@ -54,7 +55,8 @@ class ReLULayer:
         :param X: input data
         :return: Rectified Linear Unit
         """
-        raise Exception("Not implemented!")
+        self.mask = 1.0 * (X > 0)
+        return X * (X > 0)
 
     def backward(self, d_out: np.array) -> np.array:
         """
@@ -66,7 +68,9 @@ class ReLULayer:
           with respect to input
         """
         # TODO: Implement backward pass
-        raise Exception("Not implemented!")
+        d_out = d_out * self.mask
+        #raise Exception("Not implemented!")
+        return d_out
 
     def params(self) -> dict:
         # ReLU Doesn't have any parameters
@@ -82,7 +86,10 @@ class DenseLayer:
     def forward(self, X):
         # TODO: Implement forward pass
         # Your implementation shouldn't have any loops
-        raise Exception("Not implemented!")
+        out = X @ self.W.value + self.B.value
+        self.X = X
+        #raise Exception("Not implemented!")
+        return out
 
     def backward(self, d_out):
         """
@@ -103,10 +110,11 @@ class DenseLayer:
 
         # It should be pretty similar to linear classifier from
         # the previous assignment
-        # raise Exception("Not implemented!")
-        # print('d_out shape is ', d_out.shape)
-        # print('self.W shape is ', self.W.value.shape)
-        raise Exception("Not implemented!")
+        self.B.grad = np.sum(d_out, axis=0, keepdims=True)
+        self.W.grad = self.X.T @ d_out
+
+        d_result = d_out @ self.W.value.T
+        return d_result
 
     def params(self):
         return {'W': self.W, 'B': self.B}
@@ -115,7 +123,7 @@ class DenseLayer:
 class TwoLayerNet:
     """ Neural network with two fully connected layers """
 
-    def __init__(self, n_input, n_output, hidden_layer_size, reg=0):
+    def __init__(self, n_input, n_output, hidden_layer_size, reg=0.0):
         """
         Initializes the neural network
         Arguments:
@@ -146,8 +154,10 @@ class TwoLayerNet:
         # Set layer parameters gradient to zeros
         # After that compute loss and gradients
         for layer in self.layers:
-            for param in layer.params().values():
-                pass
+            Z = layer.forward(Z)
+            params_dict = layer.params()
+            for param in params_dict.values():
+                param.grad = np.zeros_like(param.value)
 
         self.loss, self.d_out = softmax_with_cross_entropy(Z, y)
         return Z
@@ -157,11 +167,14 @@ class TwoLayerNet:
         # implement l2 regularization on all params
         # Hint: self.params() is useful again!
 
-        tmp_d_out = self.d_out
+        tmp_d_out = self.d_out.copy()
         for layer in reversed(self.layers):
+            params_dict = layer.params()
             tmp_d_out = layer.backward(tmp_d_out)
-            for param in layer.params().values():
-                pass
+            for param in params_dict.values():
+                reg_loss, reg_grad = l2_regularization(param.value, self.reg)
+                param.grad += reg_grad
+                self.loss += reg_loss
 
     def fit(self, X, y, learning_rate=1e-3, num_iters=10000,
             batch_size=4, verbose=True):
@@ -204,8 +217,42 @@ class TwoLayerNet:
         return loss_history
 
 
+def train():
+
+    n_input = 10  # Change this to your input dimension
+    n_output = 5  # Change this to the number of output classes
+    hidden_layer_size = 100  # Change this to the size of the hidden layer
+    reg_strength = 0.001  # Change this to your desired regularization strength
+
+    X = np.random.rand(100, n_input)
+    y = np.random.randint(0, n_output, 100)
+
+    model = TwoLayerNet(n_input, n_output, hidden_layer_size, reg_strength)
+    t0 = datetime.datetime.now()
+    loss_history = model.fit(X, y)
+    t1 = datetime.datetime.now()
+    dt = t1 - t0
+
+    report = f"""# Multilayer neural net  
+datetime: {t1.isoformat(' ', 'seconds')}  
+Well done in: {dt.seconds} seconds  
+n_input = {n_input}  
+n_output = {n_output}
+reg_strength = {reg_strength}   
+hidden_layer_size = {hidden_layer_size}  
+
+Final loss: {loss_history[-1]}   
+"""
+
+    print(report)
+
+    out_dir = 'C:\\Users\\Вячеслав\\PycharmProjects\\neuralnets\\output\\seminar3\\'
+    with open(out_dir + 'report.md', 'w') as f:
+        f.write(report)
+
+
 if __name__ == '__main__':
     """1 point"""
     # Train your TwoLayer Net!
     # Save report to output/seminar3
-    model = TwoLayerNet()
+    train()
