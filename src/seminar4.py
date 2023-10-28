@@ -6,6 +6,9 @@ from copy import deepcopy
 from seminar3 import *
 from test_utils import get_preprocessed_data
 
+import time
+import os
+
 epsilon = 1e-3
 
 
@@ -34,7 +37,7 @@ class Optimizer(ABC):
 class SGD(Optimizer):
     def step(self, w, d_w, learning_rate):
         # TODO Update W with d_W
-        pass
+        w -= d_w * learning_rate
 
 
 class Momentum(Optimizer):
@@ -46,13 +49,17 @@ class Momentum(Optimizer):
         if self.velocity is None:
             self.velocity = np.zeros_like(d_w)
         # TODO Update W with d_W and velocity
-
+        new_velocity_value = self.rho * self.velocity + d_w
+        w -= new_velocity_value * learning_rate
+        self.velocity = new_velocity_value
 
 class DropoutLayer(Layer):
     def forward(self, x: np.ndarray, train: bool = True) -> np.ndarray:
         if train:
             # TODO zero mask in random X position and scale remains
-            pass
+            self.mask = np.random.random(size=x.shape) > self.p
+            self.scale = 1 / (1 - self.p)
+            return x * self.mask * self.scale
         else:
             return x
 
@@ -103,10 +110,13 @@ class BatchNormLayer(Layer):
         self.num_examples = x.shape[0]
         if train:
             # TODO Compute mean_x and var_x
+            self.mean_x = np.mean(x, axis=0, keepdims=True)
+            self.var_x = np.var(x, axis=0, keepdims=True)
             self._update_running_variables()
         else:
             # TODO Copy mean_x and var_x from running variables
-            pass
+            self.mean_x = self.running_mean_x
+            self.var_x = self.running_var_x
 
         self.var_x += epsilon
         self.stddev_x = np.sqrt(self.var_x)
@@ -194,6 +204,11 @@ class NeuralNetwork:
 
         return loss_history
 
+    def eval_accuracy(self, X, y):
+        y_predicted = np.argmax(self.forward(X), axis=1)
+        accuracy = np.mean(y_predicted == y)
+        return accuracy
+
     def params(self):
         model_params = dict()
         for i, layer in enumerate(self.layers):
@@ -206,10 +221,48 @@ class NeuralNetwork:
 if __name__ == '__main__':
     """1 point"""
     (x_train, y_train), (x_test, y_test) = get_preprocessed_data(include_bias=False)
-    # Train your neural net!
+
+    # NN hyperparams
     n_input, n_output, n_hidden = 3072, 10, 256
+    learning_rate = 5e-3
+    reg = 0.1
+    num_iters = 2000
+    batch_size = 256
+
     neural_net = NeuralNetwork([DenseLayer(n_input, n_hidden),
                                 DropoutLayer(0.5),
                                 BatchNormLayer(n_hidden),
                                 ReLULayer(),
                                 DenseLayer(n_hidden, n_output)])
+
+    neural_net.setup_optimizer(Momentum())
+    start_time = time.time()
+    loss_history = neural_net.fit(x_train, y_train, learning_rate, num_iters, batch_size)
+    fit_time = time.time() - start_time
+
+    # Report recording
+    report = f"""# Training Softmax classifier
+    datetime: {datetime.datetime.now()}
+    Well done in: {fit_time} seconds
+    learning_rate = {learning_rate}
+    reg = {reg}
+    num_iters = {num_iters}
+    batch_size = {batch_size}
+
+    Final loss: {loss_history[-1]}
+    Train accuracy: {neural_net.eval_accuracy(x_train, y_train)}
+    Test accuracy: {neural_net.eval_accuracy(x_test, y_test)}
+
+    <img src="weights.png">
+    <br>
+    <img src="loss.png">
+    """
+
+    out_dir = 'output/seminar4'
+    report_folder = os.path.join(os.path.abspath(os.path.join(os.getcwd(), '..')), out_dir)
+    if not os.path.exists(report_folder):
+        os.mkdir(report_folder)
+
+    with open(os.path.join(report_folder, 'report.md'), 'w') as f:
+        f.write(report)
+    visualize_loss(loss_history, report_folder)
