@@ -21,7 +21,7 @@ PATH_TO_TRAIN_DATA = 'data/raw/spam.csv'
 PATH_TO_TEST_DATA = 'data/raw/spam_test.csv'
 PATH_TO_MODEL = 'models/model_7'
 BUCKET_NAME = 'neuralnets2023'
-# todo fix your git user name
+
 YOUR_GIT_USER = 'esakov-s'
 
 
@@ -101,8 +101,6 @@ def train():
 def validate(model_path=PATH_TO_MODEL) -> tuple:
     """
     Validate model on test subset
-    todo fit tokenizer on train texts,
-    todo achieve >0.95 both accuracy and precision
     """
     model = tf.keras.models.load_model(model_path)
 
