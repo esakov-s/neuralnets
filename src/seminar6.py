@@ -6,6 +6,7 @@ import shutil
 from urllib.request import urlretrieve
 
 import tensorflow as tf
+from tensorflow import keras
 import boto3
 import dotenv
 
@@ -67,8 +68,8 @@ def configure_data():
 
     data_augmentation = keras.Sequential(
         [
-            layers.RandomFlip("horizontal"),
-            layers.RandomRotation(0.1),
+            keras.layers.RandomFlip("horizontal"),
+            keras.layers.RandomRotation(0.1),
         ]
     )
 
